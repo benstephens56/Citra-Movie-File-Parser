@@ -1,0 +1,356 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: CTM Parser
+//    Author: benstephens56
+//   Version: 5.0
+//------------------------------------------------
+LittleEndian();
+BitfieldDisablePadding();
+BitfieldRightToLeft();
+
+typedef enum<byte> {
+	Yes,
+	No
+}Bool;
+
+typedef enum<byte> {
+	LVL_1 = 1,
+	LVL_2 = 3,
+	LVL_3 = 7,
+	LVL_4 = 15,
+	LVL_5 = 31
+}Batterylvl;
+
+struct{
+    char Type[4] <name="File Type", bgcolor = cGreen>;
+    uint64 Title_ID <format=hex, name="Title ID", bgcolor = cPurple>;
+    int Git_Hash[5] <name="Git Hash", bgcolor = 0x268fff>;
+    time64_t Clock_Init_Time <name="Init Time", bgcolor = cBlue>;
+    uint64 Movie_ID <format=hex, name="Movie ID", bgcolor = cRed>;
+    char Author[32] <name="Author", bgcolor = cYellow>;
+    int Rerecords <name="Rerecords", bgcolor = cGreen, comment = c>;
+	union {
+		uint64 Frame_Count <name = "Frame Count", read=(Floor(this / (234 / FPS)))>;
+		uint64 Input_Count <name="Input Count">;
+			local double SecondsTotal = (Input_Count / 234.0);
+			local int Hours = (SecondsTotal / 3600);
+			local int Minutes = ((SecondsTotal - (Hours * 3600)) / 60);
+			local int Seconds = ((SecondsTotal - (Hours * 3600) - (Minutes * 60)));
+			local int Milliseconds = (SecondsTotal - (Hours * 3600) - (Minutes * 60) - Seconds) * 1000;
+			local string hh;
+			local string mm;
+			local string ss;
+			local string ddd;
+			SPrintf(hh, "%d", Hours);
+			SPrintf(mm, "%d", Minutes);
+			SPrintf(ss, "%d", Seconds);
+			SPrintf(ddd, "%d", Milliseconds);
+			local string TimeT = hh + ":" + mm + ":" + ss + "." + ddd;
+		uint64 Time <read=Header.Length.TimeT>;
+	} Length <open = true, name = "Length", bgcolor = cPurple>;	
+    FSkip(164);
+}Header <name="Header">;
+
+const double FPS = 59.83122493939037;
+const double Frames = Floor(Header.Length.Input_Count / (234 / FPS));
+const double ButtonConst = (FPS / 234);
+const double AccelConst = (FPS / 104);
+const double GyroConst = (FPS / 101);
+local double NewConst = 0;
+
+local double ButtonLocal = 0;
+local double AccelLocal = 0;
+local double GyroLocal = 0;
+local double NewLocal = 0;
+local byte AccelToggle = 0;
+local byte GyroToggle = 0;
+local byte NewToggle = 0;
+local byte AccelTest = 0;
+local byte GyroTest = 0;
+local byte NewTest = 0;
+local double i = 0;
+
+local int NewSetup = 0;
+local uint64 NewTestSpot = 0;
+local double ButtonTemp = 0;
+local double AccelTemp = 0;
+local double GyroTemp = 0;
+local double TestValue = 0;
+local byte TestToggle = 0;
+local double NewAverage = 0;
+local double OldAverage = 0;
+local double Sum = 0;
+
+local byte ButtonCheck = 0;
+local byte AccelCheck = 0;
+local byte GyroCheck = 0;
+local byte NewCheck = 0;
+
+local uint64 ButtonSpot = 0;
+local uint64 AccelSpot = 0;
+local uint64 GyroSpot = 0;
+local uint64 NewSpot = 0;
+local uint64 FinalSpot = 0;
+
+typedef struct {
+	byte	PadState <hidden = true>;
+	byte	A : 1 <name="A">;
+	byte	B : 1 <name="B">;
+	byte	Select : 1 <name="Select">;
+	byte	Start : 1 <name="Start">;
+	byte	Right : 1 <name="DPad Right">;
+	byte	Left : 1 <name="DPad Left">;
+	byte	Up : 1 <name="DPad Up">;
+	byte	Down : 1 <name="DPad Down">;
+	byte	R : 1 <name="R">;
+	byte	L : 1 <name="L">;
+	byte	X : 1 <name="X">;
+	byte	Y : 1 <name="Y">;
+	byte	Debug : 1 <name="Debug", hidden=true>;
+	byte	GPIO14 : 1 <name="GPIO14", hidden=true>;
+	byte	Unused : 2 <name="Unused", hidden=true>;
+	short	PadX <name="Circle Pad X">;
+	short   PadY <name="Circle Pad Y">;
+} PadCircle;	
+
+typedef struct {
+	byte	PadState2 <name="Pad State", hidden=true>;
+	ushort	XCoords <name="Touch Coords X">;
+	ushort	YCoords <name="Touch Coords Y">;
+	ushort	TouchBool <name="Touch Bool", hidden=true>;
+} TouchScreen;
+
+typedef struct {
+	byte PadState <hidden = true>;
+	short AccelX <name = "Accelerometer X">;
+	short AccelY <name = "Accelerometer Y">;
+	short AccelZ <name = "Accelerometer Z">;
+} AccelStruct;
+
+typedef struct {
+	byte PadState <hidden = true>;
+	short GyroX <name = "Gyroscope X">;
+	short GyroY <name = "Gyroscope Y">;
+	short GyroZ <name = "Gyroscope Z">;
+} GyroStruct;
+
+typedef struct {
+	byte PadState <hidden = true>;
+	Batterylvl	Battery : 5 <name="CPP Battery", hidden=true>;
+	Bool	ZL : 1 <name="ZL">;
+	Bool	ZR : 1 <name="ZR">;
+	Bool	RCPP : 1 <name="R Not Held", hidden=true>;
+	short	CStickX : 12 <name="C Stick X">;
+	short	CStickY : 12 <name="C Stick Y">;
+	ushort	Unused <name="Unused", hidden=true>;
+} NewStruct;
+
+typedef struct {
+	if (PadState == 0) {
+		byte Padding[14];
+	}
+	else {
+		byte Padding[7];
+	}
+} padding <hidden = true>;
+	
+struct{
+	for( i = 0; i <= Frames ; i++) {
+		struct{
+			while( ( (ButtonLocal + ButtonConst) < (i + 1) ) || 
+			( ( (AccelLocal + AccelConst ) < (i + 1) ) && (AccelToggle == 1) && (AccelTest > 0) ) || 
+			( ( (GyroLocal + GyroConst ) < (i + 1.05) ) && (GyroToggle == 1) && (GyroTest > 0) ) ||
+			( ( (NewLocal + NewConst ) < (i + 1.05) ) && (NewToggle == 1) && (NewTest > 0) ) ){
+				if (i % 2 == 0) {
+					SetBackColor(0xaf5658);
+				}	
+				else {
+					SetBackColor (0x5856af);
+				}	
+				byte PadState <hidden = true>;
+				switch (PadState) {
+					case 0:
+						FSkip(-1);
+						ButtonLocal = ButtonLocal + ButtonConst;
+						if( (ButtonLocal + ButtonConst) < (i + 1) ) {
+							struct padding PADDING;
+							break;
+						}	
+						else {
+							ButtonCheck = 1;
+							ButtonSpot = FTell();
+							struct padding PADDING;
+							break;
+						}	
+					case 2:
+						FSkip(-1);
+						AccelTest++;
+						if (AccelToggle == 0) {
+							AccelToggle = 1;
+							AccelLocal = ButtonLocal;
+						}	
+						else {
+							AccelLocal = AccelLocal + AccelConst;
+						}	
+						if ( (AccelLocal + AccelConst) < (i + 1) ) {
+							struct padding PADDING;
+							break;
+						}	
+						else {
+							AccelCheck = 1;
+							AccelSpot = FTell();
+							struct padding PADDING;
+							break;
+						}	
+					case 3:
+						FSkip(-1);
+						GyroTest++;
+						if (GyroToggle == 0) {
+							GyroToggle = 1;
+							GyroLocal = ButtonLocal;
+						}
+						else {
+							GyroLocal = GyroLocal + GyroConst;
+						}	
+						if ( (GyroLocal + GyroConst) < (i + 1.05) ) {
+							struct padding PADDING;
+							break;
+						}
+						else {
+							GyroCheck = 1;
+							GyroSpot = FTell();
+							struct padding PADDING;
+							break;
+						}
+					case 5:
+						NewTest++;
+						if (NewToggle == 0) {
+							NewToggle = 1;
+							NewLocal = ButtonLocal;
+							ButtonTemp = ButtonLocal;
+							AccelTemp = AccelLocal;
+							GyroTemp = GyroLocal;
+							OldAverage = ButtonLocal;
+							NewTestSpot = FTell();
+							FSkip(6);
+							while((NewSetup < 100)) {
+								if ((FTell() + 5) >= FileSize()) {
+									break;
+								}	
+								byte PadStateTemp <hidden = true>;
+								switch (PadStateTemp) {
+									case 0:
+										ButtonTemp = ButtonTemp + ButtonConst;
+										if (TestToggle == 0) {
+											TestValue = ButtonTemp;
+										}
+										else {
+											NewAverage = TestValue + ((ButtonTemp - TestValue) / 2);
+											Sum = Sum + (NewAverage - OldAverage);
+											OldAverage = NewAverage;
+											NewSetup++;
+										}	
+										FSkip(13);
+										TestToggle = 0;
+										break;
+									case 2:
+										AccelTemp = AccelTemp + AccelConst;
+										if (TestToggle == 0) {
+											TestValue = AccelTemp;
+										}
+										else {
+											NewAverage = TestValue + ((AccelTemp - TestValue) / 2);
+											Sum = Sum + (NewAverage - OldAverage);
+											OldAverage = NewAverage;
+											NewSetup++;
+										}
+										FSkip(6);	
+										TestToggle = 0;
+										break;
+									case 3:
+										GyroTemp = GyroTemp + GyroConst;
+										if (TestToggle == 0) {
+											TestValue = GyroTemp;
+										}
+										else {
+											NewAverage = TestValue + ((GyroTemp - TestValue) / 2);
+											Sum = Sum + (NewAverage - OldAverage);
+											OldAverage = NewAverage;
+											NewSetup++;
+										}	
+										FSkip(6);
+										TestToggle = 0;
+										break;
+									case 5:
+										TestToggle = 1;
+										FSkip(6);
+										break;
+								}
+							}
+							NewConst = Sum / NewSetup;
+							OldAverage = 0;
+							TestValue = 0;
+							FSeek(NewTestSpot);
+						}
+						else {
+							NewLocal = NewLocal + NewConst;
+						}
+						FSkip(-1);
+						if ( (NewLocal + NewConst) < (i + 1.05) ) {
+							struct padding PADDING;
+							break;
+						}	
+						else {
+							NewCheck = 1;
+							NewSpot = FTell();
+							struct padding PADDING;
+							break;
+						}	
+					default:
+						FSkip(6);	
+						break;
+				}
+			}
+			FinalSpot = FTell();
+			if (i % 2 == 0) {
+					SetBackColor(cBlue);
+				}	
+				else {
+					SetBackColor (cRed);
+				}	
+			FSeek(ButtonSpot);
+			struct PadCircle PADCIRCLE <name = "Pad & Circle">;
+			struct TouchScreen TOUCHSCREEN <name = "Touch Screen">;
+			if(AccelCheck == 1) {
+				FSeek(AccelSpot);
+				struct AccelStruct ACCELSTRUCT <name = "Accelerometer">;
+			}	
+			if(GyroCheck == 1) {
+				FSeek(GyroSpot);
+				struct GyroStruct GYROSTRUCT <name = "Gyroscope">;
+			}	
+			if(NewCheck == 1) {
+				FSeek(NewSpot);
+				struct NewStruct NEWSTRUCT <name = "New 3DS">;
+			}
+			FSeek(FinalSpot);
+			AccelCheck = 0;
+			GyroCheck = 0;
+			NewCheck = 0;
+			if ((AccelTest == 0) && (AccelToggle == 1)){
+				AccelToggle = 0;
+			}
+			if ((GyroTest == 0) && (GyroToggle == 1)){
+				GyroToggle = 0;
+			}
+			if ((NewTest == 0) && (NewToggle == 1)){
+				NewToggle = 0;
+			}
+			ButtonCheck = 0;
+			AccelTest = 0;
+			GyroTest = 0;
+			NewTest = 0;
+		} Frame <name="Frame", optimize=false>;
+	}
+} Inputs <name="Inputs", optimize=false>;
