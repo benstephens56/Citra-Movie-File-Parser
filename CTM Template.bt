@@ -29,7 +29,7 @@ struct{
     time64_t Clock_Init_Time <name="Init Time", bgcolor = cBlue>;
     uint64 Movie_ID <format=hex, name="Movie ID", bgcolor = cRed>;
     char Author[32] <name="Author", bgcolor = cYellow>;
-    int Rerecords <name="Rerecords", bgcolor = cGreen, comment = c>;
+    int Rerecords <name="Rerecords", bgcolor = cGreen>;
 	union {
 		uint64 Frame_Count <name = "Frame Count", read=(Floor(this / (234 / FPS)))>;
 		uint64 Input_Count <name="Input Count">;
